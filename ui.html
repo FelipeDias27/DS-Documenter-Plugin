@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body { font-family: sans-serif; padding: 16px; }
+      select, button { width: 100%; padding: 8px; margin-top: 12px; }
+    </style>
+  </head>
+  <body>
+    <h3>Gerar documentação</h3>
+    <select id="component-select">
+      <option value="Counter">Counter</option>
+      <option value="Button">Button</option>
+      <!-- depois você pode gerar isso dinamicamente -->
+    </select>
+    <button id="generate">Criar frame</button>
+
+    <script>
+      document.getElementById('generate').onclick = () => {
+        const component = document.getElementById('component-select').value;
+
+        parent.postMessage({
+          pluginMessage: {
+            type: 'create-doc',
+            component,
+            data: {} // futuramente, aqui vai vir o conteúdo da API
+          }
+        }, '*');
+      };
+    </script>
+  </body>
+</html>
