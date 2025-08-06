@@ -10,24 +10,39 @@
   <body>
     <h3>Gerar documentação</h3>
     <select id="component-select">
-      <option value="Counter">Counter</option>
-      <option value="Button">Button</option>
-      <!-- depois você pode gerar isso dinamicamente -->
+      <option>Carregando...</option>
     </select>
     <button id="generate">Criar frame</button>
 
     <script>
-      document.getElementById('generate').onclick = () => {
-        const component = document.getElementById('component-select').value;
+      const select = document.getElementById('component-select');
 
+      // Recebe a lista de componentes enviada por code.ts
+      window.onmessage = (event) => {
+        const msg = event.data.pluginMessage;
+        if (msg.type === 'set-components') {
+          select.innerHTML = ''; // limpa opções antigas
+          msg.components.forEach(name => {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            select.appendChild(option);
+          });
+        }
+      };
+
+      // Envia mensagem para criar o frame
+      document.getElementById('generate').onclick = () => {
+        const component = select.value;
         parent.postMessage({
           pluginMessage: {
             type: 'create-doc',
             component,
-            data: {} // futuramente, aqui vai vir o conteúdo da API
+            data: {} // por enquanto vazio
           }
         }, '*');
       };
     </script>
   </body>
 </html>
+
