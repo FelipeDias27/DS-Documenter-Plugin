@@ -1,48 +1,100 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <style>
-      body { font-family: sans-serif; padding: 16px; }
-      select, button { width: 100%; padding: 8px; margin-top: 12px; }
-    </style>
-  </head>
-  <body>
-    <h3>Gerar documentação</h3>
-    <select id="component-select">
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 16px; }
+    select, button { width: 100%; margin: 8px 0; padding: 8px; }
+  </style>
+</head>
+<body>
+  <!-- resto do HTML permanece igual -->
+  <div>
+    <label>Componente:</label>
+    <select id="componentSelect">
       <option>Carregando...</option>
     </select>
-    <button id="generate">Criar frame</button>
+    <button id="createBtn">Criar Frame</button>
+  </div>
 
-    <script>
-      const select = document.getElementById('component-select');
+  <script>
+    // JavaScript permanece exatamente igual
+    const CSV_PROXY_URL = 'https://cozy-docs-proxy.dsdocs.workers.dev/';
+    
+    async function fetchComponentsFromSheet() {
+      try {
+        const res = await fetch(CSV_PROXY_URL);
+        const csvText = await res.text();
+        const lines = csvText.split('\n').slice(1);
+        const componentNames = lines.map(line => line.split(',')[0].trim()).filter(name => name);
+        return Array.from(new Set(componentNames));
+      } catch (error) {
+        console.error('Erro ao buscar componentes:', error);
+        return [];
+      }
+    }
 
-      // Recebe a lista de componentes enviada por code.ts
-      window.onmessage = (event) => {
-        const msg = event.data.pluginMessage;
-        if (msg.type === 'set-components') {
-          select.innerHTML = ''; // limpa opções antigas
-          msg.components.forEach(name => {
-            const option = document.createElement('option');
-            option.value = name;
-            option.textContent = name;
-            select.appendChild(option);
-          });
+    async function fetchAllSheetRows() {
+      try {
+        const res = await fetch(CSV_PROXY_URL);
+        const csvText = await res.text();
+        const lines = csvText.split(/\r?\n/)
+          .filter(line => line.trim() !== '')
+          .slice(1)
+          .map(line => parseCSVLine(line))
+          .filter(row => row.length >= 4 && row[0].trim() !== '');
+        return lines;
+      } catch (error) {
+        console.error('Erro ao buscar dados:', error);
+        return [];
+      }
+    }
+
+    function parseCSVLine(line) {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += char;
         }
-      };
+      }
+      result.push(current.trim());
+      return result;
+    }
 
-      // Envia mensagem para criar o frame
-      document.getElementById('generate').onclick = () => {
-        const component = select.value;
-        parent.postMessage({
-          pluginMessage: {
-            type: 'create-doc',
-            component,
-            data: {} // por enquanto vazio
-          }
-        }, '*');
-      };
-    </script>
-  </body>
+    window.onload = async () => {
+      const components = await fetchComponentsFromSheet();
+      const select = document.getElementById('componentSelect');
+      
+      select.innerHTML = '';
+      components.forEach(comp => {
+        const option = document.createElement('option');
+        option.value = comp;
+        option.textContent = comp;
+        select.appendChild(option);
+      });
+    };
+
+    document.getElementById('createBtn').onclick = async () => {
+      const component = document.getElementById('componentSelect').value;
+      const data = await fetchAllSheetRows();
+      
+      parent.postMessage({
+        pluginMessage: {
+          type: 'create-doc',
+          component: component,
+          data: data
+        }
+      }, '*');
+    };
+  </script>
+</body>
 </html>
 
