@@ -1,14 +1,14 @@
 {
   "compilerOptions": {
-    "target": "es6",
-    "lib": ["es2015"],
+    "target": "ES2017",
+    "lib": ["ES2017", "DOM"],
+    "module": "commonjs",
+    "outDir": "./dist",
     "strict": true,
-    "outDir": "dist",          // <--- garante que vá pra dist/
-    "rootDir": ".",            // <--- diz que seu código-fonte começa na raiz
-    "typeRoots": [
-      "./node_modules/@types",
-      "./node_modules/@figma"
-    ]
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
   },
-  "include": ["code.ts"]
+  "include": ["code.ts"],
+  "exclude": ["node_modules", "dist"]
 }
