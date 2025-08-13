@@ -58,7 +58,6 @@ function createDividerLine(): FrameNode {
   line.name = "Divider";
   line.resize(100, 2);
   line.fills = [{ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }];
-  // ✅ Removido layoutSizingHorizontal - será definido apenas quando adicionado ao frame pai
   return line;
 }
 
@@ -66,20 +65,22 @@ function createDividerLine(): FrameNode {
 function createImagePlaceholder(): FrameNode {
   const placeholder = figma.createFrame();
   placeholder.name = "Image Placeholder";
-  placeholder.resize(160, 160);
-  placeholder.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.95, b: 0.95 } }];
-  placeholder.strokeWeight = 1;
-  placeholder.strokes = [{ type: 'SOLID', color: { r: 0.8, g: 0.8, b: 0.8 } }];
+  placeholder.resize(330, 435); // ✅ Largura: 330, Altura: 435
+  placeholder.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }]; // ✅ Fill: #FFFFFF
+  placeholder.strokeWeight = 6; // ✅ Stroke: 6px
+  placeholder.strokeAlign = 'INSIDE'; // ✅ Inside stroke
+  placeholder.strokes = [{ type: 'SOLID', color: { r: 0.894, g: 0.894, b: 0.909 } }]; // ✅ Stroke cor: #E4E4E8
+  placeholder.cornerRadius = 32; // ✅ Border-radius: 32px
   
   // Adicionar texto "Image"
   const text = figma.createText();
   text.characters = "Image";
-  text.fontSize = 14;
+  text.fontSize = 21; // ✅ Mantém o fontSize escalado
   text.fontName = { family: "Inter", style: "Regular" };
   text.fills = [{ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 } }];
   text.textAlignHorizontal = 'CENTER';
   text.textAlignVertical = 'CENTER';
-  text.resize(160, 160);
+  text.resize(330, 435); // ✅ Ajustar ao novo tamanho
   
   placeholder.appendChild(text);
   return placeholder;
@@ -209,7 +210,7 @@ async function createStructuredDocumentation(data: string[][], componentName: st
     categoryFrame.name = `Category: ${categoryName}`;
     categoryFrame.layoutMode = 'VERTICAL';
     categoryFrame.counterAxisSizingMode = 'AUTO';
-    categoryFrame.itemSpacing = 40; // ✅ 40px entre Title & Divider e SubCategories
+    categoryFrame.itemSpacing = 60; // ✅ 40 -> 60 (1.5x)
     categoryFrame.fills = [];
     
     // ✅ 1.1 Criar frame para título + divider
@@ -217,11 +218,11 @@ async function createStructuredDocumentation(data: string[][], componentName: st
     titleDividerFrame.name = "Title & Divider";
     titleDividerFrame.layoutMode = 'VERTICAL';
     titleDividerFrame.counterAxisSizingMode = 'AUTO';
-    titleDividerFrame.itemSpacing = 16; // ✅ 16px entre título e divider
+    titleDividerFrame.itemSpacing = 24; // ✅ 16 -> 24 (1.5x)
     titleDividerFrame.fills = [];
     
     // 1.2 Título da categoria (H2)
-    const categoryTitle = await createSimpleText(categoryName, 24, "Bold");
+    const categoryTitle = await createSimpleText(categoryName, 36, "Bold"); // ✅ 24 -> 36 (1.5x)
     titleDividerFrame.appendChild(categoryTitle);
     categoryTitle.layoutSizingHorizontal = 'FILL';
     
@@ -239,7 +240,7 @@ async function createStructuredDocumentation(data: string[][], componentName: st
     subCategoriesFrame.name = "SubCategories";
     subCategoriesFrame.layoutMode = 'VERTICAL';
     subCategoriesFrame.counterAxisSizingMode = 'AUTO';
-    subCategoriesFrame.itemSpacing = 64; // ✅ 64px entre cada subcategoria
+    subCategoriesFrame.itemSpacing = 96; // ✅ 64 -> 96 (1.5x)
     subCategoriesFrame.fills = [];
     
     // 3. Processar subcategorias
@@ -257,12 +258,12 @@ async function createStructuredDocumentation(data: string[][], componentName: st
         descriptionFrame.name = "Description";
         descriptionFrame.layoutMode = 'VERTICAL';
         descriptionFrame.counterAxisSizingMode = 'AUTO';
-        descriptionFrame.itemSpacing = 24;
+        descriptionFrame.itemSpacing = 36; // ✅ 24 -> 36 (1.5x)
         descriptionFrame.fills = [];
         
         for (const guideline of guidelines) {
           if (!guideline.trim()) continue;
-          const text = await createSimpleText(guideline, 24, "Regular");
+          const text = await createSimpleText(guideline, 30, "Regular"); // ✅ 24 -> 30 (1.25x)
           descriptionFrame.appendChild(text);
           text.layoutSizingHorizontal = 'FILL';
         }
@@ -278,7 +279,7 @@ async function createStructuredDocumentation(data: string[][], componentName: st
       subCategoryFrame.name = `SubCategory: ${subCategoryName}`;
       subCategoryFrame.layoutMode = 'HORIZONTAL';
       subCategoryFrame.counterAxisSizingMode = 'AUTO';
-      subCategoryFrame.itemSpacing = 72; // Espaçamento entre texto e imagem
+      subCategoryFrame.itemSpacing = 108; // ✅ 72 -> 108 (1.5x)
       subCategoryFrame.fills = [];
       
       // Frame esquerdo (conteúdo)
@@ -286,12 +287,12 @@ async function createStructuredDocumentation(data: string[][], componentName: st
       contentFrame.name = "Content";
       contentFrame.layoutMode = 'VERTICAL';
       contentFrame.counterAxisSizingMode = 'AUTO';
-      contentFrame.itemSpacing = 16; // Espaçamento entre título e bullet points
+      contentFrame.itemSpacing = 24; // ✅ 16 -> 24 (1.5x)
       contentFrame.fills = [];
       
       // ✅ Título da subcategoria (H3) - Bold
       if (subCategoryName.trim()) {
-        const subCategoryTitle = await createSimpleText(subCategoryName, 18, "Bold");
+        const subCategoryTitle = await createSimpleText(subCategoryName, 28, "Bold"); // ✅ 18 -> 28 (1.55x)
         contentFrame.appendChild(subCategoryTitle);
         subCategoryTitle.layoutSizingHorizontal = 'FILL';
       }
@@ -301,7 +302,7 @@ async function createStructuredDocumentation(data: string[][], componentName: st
         if (!guideline.trim()) continue;
         
         // ✅ Usar bullet list nativo - removido o "• " e adicionado parâmetro true
-        const bulletText = await createSimpleText(guideline, 14, "Regular", true);
+        const bulletText = await createSimpleText(guideline, 22, "Regular", true); // ✅ 14 -> 22 (1.57x)
         contentFrame.appendChild(bulletText);
         bulletText.layoutSizingHorizontal = 'FILL';
       }
@@ -341,18 +342,24 @@ figma.ui.onmessage = async (msg) => {
     // CARREGUE AS FONTES PRIMEIRO
     await loadRequiredFonts();
 
-    // Criar o frame principal com largura fixa de 988px
+    // Criar o frame principal com largura fixa escalada
     const mainFrame = figma.createFrame();
     mainFrame.name = `UI Docs: ${component}`;
-    mainFrame.resize(988, 100);
+    mainFrame.resize(1115, 150); // ✅ 988 -> 1115 (1.13x), altura também escalada
     mainFrame.layoutMode = 'VERTICAL';
     mainFrame.counterAxisSizingMode = 'AUTO';
-    mainFrame.itemSpacing = 72;
-    mainFrame.paddingLeft = 48;
-    mainFrame.paddingRight = 48;
-    mainFrame.paddingTop = 48;
-    mainFrame.paddingBottom = 48;
+    mainFrame.itemSpacing = 108; // ✅ 72 -> 108 (1.5x)
+    mainFrame.paddingLeft = 72; // ✅ 48 -> 72 (1.5x)
+    mainFrame.paddingRight = 72; // ✅ 48 -> 72 (1.5x)
+    mainFrame.paddingTop = 100; // ✅ 48 -> 72 (1.5x)
+    mainFrame.paddingBottom = 100; // ✅ 48 -> 72 (1.5x)
     mainFrame.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+    mainFrame.cornerRadius = 40; // ✅ Border-radius: 32px
+    mainFrame.strokes = [{ type: 'SOLID', color: { r: 0.941, g: 0.941, b: 0.941 } }]; // ✅ Stroke cor: #F0F0F0
+    mainFrame.strokeWeight = 6; // ✅ Stroke: 6px
+    mainFrame.strokeAlign = 'INSIDE'; // ✅ Inside stroke
+
+
 
     try {
       // ✅ Criar cabeçalho SEM auto-layout (HUG)
@@ -361,20 +368,20 @@ figma.ui.onmessage = async (msg) => {
       headerFrame.fills = [];
       
       // Título principal
-      const title = await createSimpleText("UI Guidelines", 48, "Bold");
+      const title = await createSimpleText("UI Guidelines", 72, "Bold"); // ✅ 48 -> 72 (1.5x)
       title.x = 0;
       title.y = 0;
       headerFrame.appendChild(title);
 
       // Subtítulo com nome do componente
-      const subtitle = await createSimpleText(component, 32, "Medium");
+      const subtitle = await createSimpleText(component, 48, "Medium"); // ✅ 32 -> 48 (1.5x)
       subtitle.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.2 } }];
       subtitle.x = 0;
-      subtitle.y = title.height + 16;
+      subtitle.y = title.height + 24; // ✅ 16 -> 24 (1.5x)
       headerFrame.appendChild(subtitle);
 
       // Ajustar tamanho do headerFrame (HUG)
-      headerFrame.resize(Math.max(title.width, subtitle.width), title.height + 16 + subtitle.height);
+      headerFrame.resize(Math.max(title.width, subtitle.width), title.height + 24 + subtitle.height); // ✅ 16 -> 24 (1.5x)
 
       mainFrame.appendChild(headerFrame);
       // ❌ Header NÃO tem FILL (fica HUG)
