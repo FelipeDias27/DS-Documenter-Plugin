@@ -2,23 +2,237 @@
 <html>
 <head>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 16px; }
-    select, button { width: 100%; margin: 8px 0; padding: 8px; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+      padding: 24px;
+      background: #FFFFFF;
+      color: #0A0A0A;
+      line-height: 1.4;
+    }
+    
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    label {
+      font-size: 18px;
+      font-weight: 600; /* Semibold */
+      color: #0A0A0A;
+      margin: 0;
+    }
+    
+    .dropdown-container {
+      position: relative;
+      width: 100%;
+    }
+    
+    select {
+      width: 100%;
+      height: 56px;
+      padding: 16px 48px 16px 16px; /* Right padding para arrow */
+      font-size: 16px;
+      color: #6B6B6B;
+      background: #FFFFFF;
+      border: 1.5px solid #E5E5E5;
+      border-radius: 12px;
+      appearance: none; /* Remove arrow padrão */
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    select:focus {
+      outline: none;
+      border-color: #0A0A0A;
+      color: #0A0A0A;
+    }
+    
+    select option {
+      color: #0A0A0A;
+      padding: 12px;
+    }
+    
+    /* Custom dropdown arrow */
+    .dropdown-container::after {
+      content: '';
+      position: absolute;
+      right: 16px; /* 16px de respiro */
+      top: 50%;
+      transform: translateY(-50%);
+      width: 12px;
+      height: 8px;
+      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 8"><path d="M1 1.5L6 6.5L11 1.5" stroke="%236B6B6B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>') no-repeat center;
+      pointer-events: none;
+    }
+    
+    /* ✅ BOTÃO SIMPLIFICADO SEM GLITCH */
+    .button-container {
+      margin-top: 8px;
+    }
+    
+    button {
+      position: relative;
+      width: 100%;
+      height: 56px;
+      background: #0A0A0A;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 28px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transform: translateY(0);
+    }
+    
+    /* ✅ Shimmer sweep effect - apenas quando hover */
+    button:not(:disabled)::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent
+      );
+      transition: left 0.6s ease;
+    }
+    
+    /* ✅ Hover só quando não disabled */
+    button:not(:disabled):hover {
+      background: #1A1A1A;
+      transform: translateY(-2px);
+      box-shadow: 
+        0 10px 25px rgba(10, 10, 10, 0.15),
+        0 5px 10px rgba(10, 10, 10, 0.1);
+    }
+    
+    button:not(:disabled):hover::before {
+      left: 100%;
+    }
+    
+    /* ✅ Active só quando não disabled */
+    button:not(:disabled):active {
+      background: #000000;
+      transform: translateY(0);
+      box-shadow: 
+        0 5px 15px rgba(10, 10, 10, 0.2),
+        0 2px 5px rgba(10, 10, 10, 0.15);
+    }
+    
+    /* ✅ Estado disabled */
+    button:disabled {
+      background: #E5E5E5 !important;
+      color: #9B9B9B !important;
+      cursor: not-allowed !important;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+    
+    button:disabled::before {
+      display: none !important;
+    }
+    
+    /* Ripple effect */
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      transform: scale(0);
+      animation: ripple-animation 0.6s ease-out;
+      pointer-events: none;
+    }
+    
+    @keyframes ripple-animation {
+      to {
+        transform: scale(4);
+        opacity: 0;
+      }
+    }
+    
+    /* Loading state */
+    .loading {
+      color: #9B9B9B;
+      font-style: italic;
+    }
+    
+    /* Loading spinner */
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top: 2px solid #FFFFFF;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 8px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
-  <!-- resto do HTML permanece igual -->
-  <div>
-    <label>Componente:</label>
-    <select id="componentSelect">
-      <option>Carregando...</option>
-    </select>
-    <button id="createBtn">Criar Frame</button>
+  <div class="container">
+    <div class="form-group">
+      <label for="componentSelect">Componente</label>
+      <div class="dropdown-container">
+        <select id="componentSelect">
+          <option class="loading">Carregando...</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="button-container">
+      <button id="createBtn">Criar frame</button>
+    </div>
   </div>
 
   <script>
-    // JavaScript permanece exatamente igual
     const CSV_PROXY_URL = 'https://cozy-docs-proxy.dsdocs.workers.dev/';
+    
+    // ✅ Ripple effect simplificado
+    function createRipple(event) {
+      const button = event.currentTarget;
+      if (button.disabled) return;
+      
+      const ripple = document.createElement('span');
+      const rect = button.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height);
+      const x = event.clientX - rect.left - size / 2;
+      const y = event.clientY - rect.top - size / 2;
+      
+      ripple.style.width = ripple.style.height = size + 'px';
+      ripple.style.left = x + 'px';
+      ripple.style.top = y + 'px';
+      ripple.classList.add('ripple');
+      
+      button.appendChild(ripple);
+      
+      setTimeout(() => {
+        ripple.remove();
+      }, 600);
+    }
     
     async function fetchComponentsFromSheet() {
       try {
@@ -70,31 +284,90 @@
     }
 
     window.onload = async () => {
-      const components = await fetchComponentsFromSheet();
       const select = document.getElementById('componentSelect');
+      const button = document.getElementById('createBtn');
       
-      select.innerHTML = '';
-      components.forEach(comp => {
-        const option = document.createElement('option');
-        option.value = comp;
-        option.textContent = comp;
-        select.appendChild(option);
-      });
+      // ✅ Apenas ripple effect
+      button.addEventListener('click', createRipple);
+      
+      // Disable button initially
+      button.disabled = true;
+      
+      try {
+        const components = await fetchComponentsFromSheet();
+        select.innerHTML = '';
+        
+        // Add placeholder
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Selecione um componente';
+        placeholder.disabled = true;
+        placeholder.selected = true;
+        select.appendChild(placeholder);
+        
+        // Add components
+        components.forEach(comp => {
+          const option = document.createElement('option');
+          option.value = comp;
+          option.textContent = comp;
+          select.appendChild(option);
+        });
+        
+        // Enable button when component is selected
+        select.addEventListener('change', () => {
+          button.disabled = select.value === '';
+        });
+        
+      } catch (error) {
+        select.innerHTML = '<option disabled>Erro ao carregar componentes</option>';
+      }
     };
+
+    // ✅ Escutar resposta do plugin para resetar botão
+    window.addEventListener('message', (event) => {
+      if (event.data.pluginMessage && event.data.pluginMessage.type === 'frame-created') {
+        const button = document.getElementById('createBtn');
+        button.disabled = false;
+        button.textContent = 'Criar frame';
+      }
+    });
 
     document.getElementById('createBtn').onclick = async () => {
       const component = document.getElementById('componentSelect').value;
-      const data = await fetchAllSheetRows();
+      if (!component) return;
       
-      parent.postMessage({
-        pluginMessage: {
-          type: 'create-doc',
-          component: component,
-          data: data
-        }
-      }, '*');
+      const button = document.getElementById('createBtn');
+      const originalText = button.textContent;
+      
+      // ✅ Loading state com spinner
+      button.disabled = true;
+      button.innerHTML = '<span class="spinner"></span>Criando...';
+      
+      try {
+        const data = await fetchAllSheetRows();
+        
+        parent.postMessage({
+          pluginMessage: {
+            type: 'create-doc',
+            component: component,
+            data: data
+          }
+        }, '*');
+        
+        // ✅ Resetar botão após 3 segundos como fallback
+        setTimeout(() => {
+          if (button.disabled && button.textContent.includes('Criando')) {
+            button.disabled = false;
+            button.textContent = originalText;
+          }
+        }, 3000);
+        
+      } catch (error) {
+        console.error('Erro:', error);
+        button.textContent = originalText;
+        button.disabled = false;
+      }
     };
   </script>
 </body>
 </html>
-
