@@ -468,11 +468,11 @@ async function createStructuredDocumentation(data: string[][], componentName: st
     titleDividerFrame.name = "Title & Divider";
     titleDividerFrame.layoutMode = 'VERTICAL';
     titleDividerFrame.counterAxisSizingMode = 'AUTO';
-    titleDividerFrame.itemSpacing = 24; // ✅ 16 -> 24 (1.5x)
+    titleDividerFrame.itemSpacing = 24;
     titleDividerFrame.fills = [];
     
     // 1.2 Título da categoria (H2)
-    const categoryTitle = await createSimpleText(categoryName, 36, "Bold"); // ✅ 24 -> 36 (1.5x)
+    const categoryTitle = await createSimpleText(categoryName, 36, "Bold");
     titleDividerFrame.appendChild(categoryTitle);
     categoryTitle.layoutSizingHorizontal = 'FILL';
     
@@ -490,10 +490,12 @@ async function createStructuredDocumentation(data: string[][], componentName: st
     subCategoriesFrame.name = "SubCategories";
     subCategoriesFrame.layoutMode = 'VERTICAL';
     subCategoriesFrame.counterAxisSizingMode = 'AUTO';
-    subCategoriesFrame.itemSpacing = 96; // ✅ 64 -> 96 (1.5x)
+    subCategoriesFrame.itemSpacing = 96;
     subCategoriesFrame.fills = [];
     
-    // 3. Processar subcategorias
+    // ✅ 3. Processar subcategorias com alternância de layout
+    let subCategoryIndex = 0; // Contador para alternância
+    
     for (const subCategoryName in subCategories) {
       const guidelines = subCategories[subCategoryName];
       
@@ -508,12 +510,12 @@ async function createStructuredDocumentation(data: string[][], componentName: st
         descriptionFrame.name = "Description";
         descriptionFrame.layoutMode = 'VERTICAL';
         descriptionFrame.counterAxisSizingMode = 'AUTO';
-        descriptionFrame.itemSpacing = 36; // ✅ 24 -> 36 (1.5x)
+        descriptionFrame.itemSpacing = 36;
         descriptionFrame.fills = [];
         
         for (const guideline of guidelines) {
           if (!guideline.trim()) continue;
-          const text = await createSimpleText(guideline, 30, "Regular"); // ✅ 24 -> 30 (1.25x)
+          const text = await createSimpleText(guideline, 30, "Regular");
           descriptionFrame.appendChild(text);
           text.layoutSizingHorizontal = 'FILL';
         }
@@ -521,28 +523,28 @@ async function createStructuredDocumentation(data: string[][], componentName: st
         // ✅ Adicionar ao frame de subcategorias
         subCategoriesFrame.appendChild(descriptionFrame);
         descriptionFrame.layoutSizingHorizontal = 'FILL';
-        continue;
+        continue; // Não conta para alternância
       }
       
-      // Layout normal com imagem para outras subcategorias
+      // ✅ Layout normal com alternância de posição da imagem
       const subCategoryFrame = figma.createFrame();
       subCategoryFrame.name = `SubCategory: ${subCategoryName}`;
       subCategoryFrame.layoutMode = 'HORIZONTAL';
       subCategoryFrame.counterAxisSizingMode = 'AUTO';
-      subCategoryFrame.itemSpacing = 108; // ✅ 72 -> 108 (1.5x)
+      subCategoryFrame.itemSpacing = 108;
       subCategoryFrame.fills = [];
       
-      // Frame esquerdo (conteúdo)
+      // Frame de conteúdo (texto)
       const contentFrame = figma.createFrame();
       contentFrame.name = "Content";
       contentFrame.layoutMode = 'VERTICAL';
       contentFrame.counterAxisSizingMode = 'AUTO';
-      contentFrame.itemSpacing = 24; // ✅ 16 -> 24 (1.5x)
+      contentFrame.itemSpacing = 24;
       contentFrame.fills = [];
       
       // ✅ Título da subcategoria (H3) - Bold
       if (subCategoryName.trim()) {
-        const subCategoryTitle = await createSimpleText(subCategoryName, 28, "Bold"); // ✅ 18 -> 28 (1.55x)
+        const subCategoryTitle = await createSimpleText(subCategoryName, 28, "Bold");
         contentFrame.appendChild(subCategoryTitle);
         subCategoryTitle.layoutSizingHorizontal = 'FILL';
       }
@@ -551,23 +553,35 @@ async function createStructuredDocumentation(data: string[][], componentName: st
       for (const guideline of guidelines) {
         if (!guideline.trim()) continue;
         
-        // ✅ Usar bullet list nativo - removido o "• " e adicionado parâmetro true
-        const bulletText = await createSimpleText(guideline, 22, "Regular", true); // ✅ 14 -> 22 (1.57x)
+        const bulletText = await createSimpleText(guideline, 22, "Regular", true);
         contentFrame.appendChild(bulletText);
         bulletText.layoutSizingHorizontal = 'FILL';
       }
       
-      // Placeholder de imagem (direita)
+      // Placeholder de imagem
       const imagePlaceholder = createImagePlaceholder();
       
-      // Adicionar frames ao layout
-      subCategoryFrame.appendChild(contentFrame);
-      subCategoryFrame.appendChild(imagePlaceholder);
+      // ✅ ALTERNÂNCIA: Par = Content à esquerda, Ímpar = Content à direita
+      const isEven = subCategoryIndex % 2 === 0;
+      
+      if (isEven) {
+        // SubCategory par: Content à esquerda, Image à direita
+        subCategoryFrame.appendChild(contentFrame);
+        subCategoryFrame.appendChild(imagePlaceholder);
+      } else {
+        // SubCategory ímpar: Image à esquerda, Content à direita
+        subCategoryFrame.appendChild(imagePlaceholder);
+        subCategoryFrame.appendChild(contentFrame);
+      }
+      
       contentFrame.layoutSizingHorizontal = 'FILL';
       
       // ✅ Adicionar subcategoria ao frame de subcategorias
       subCategoriesFrame.appendChild(subCategoryFrame);
       subCategoryFrame.layoutSizingHorizontal = 'FILL';
+      
+      // ✅ Incrementar contador para próxima alternância
+      subCategoryIndex++;
     }
     
     // ✅ Adicionar frame de subcategorias à categoria (se não estiver vazio)
