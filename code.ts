@@ -394,9 +394,9 @@ async function createStructuredDocumentation(data: string[][], componentName: st
           anatomySubFrame.itemSpacing = 24;
           anatomySubFrame.primaryAxisAlignItems = 'MIN'; // Alinhar ao topo
           
-          // ✅ TÍTULO COM WIDTH FIXO DE 300px e 22px
+          // ✅ TÍTULO COM WIDTH FIXO DE 350px e 22px (ALTERADO DE 300px PARA 350px)
           const anatomySubTitle = await createSimpleText(subCategoryName, 22, "Bold"); // ✅ 22px
-          anatomySubTitle.resize(300, anatomySubTitle.height); // ✅ Width fixo 300px
+          anatomySubTitle.resize(350, anatomySubTitle.height); // ✅ Width fixo 350px (era 300px)
           anatomySubTitle.layoutSizingHorizontal = 'FIXED';
           anatomySubFrame.appendChild(anatomySubTitle);
           
@@ -411,7 +411,7 @@ async function createStructuredDocumentation(data: string[][], componentName: st
           // Adicionar conteúdo
           for (const item of content) {
             if (item.trim() && !item.includes('Image')) {
-              const contentText = await createSimpleText(item, 22, "Regular", true); // ✅ Com bullet
+              const contentText = await createSimpleText(item, 22, "Regular", false); // ✅ SEM BULLET (era true)
               anatomyContentContainer.appendChild(contentText);
               contentText.layoutSizingHorizontal = 'FILL';
             }
