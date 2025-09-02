@@ -5,6 +5,8 @@
   "main": "dist/code.js",
   "ui": "ui.html",
   "editorType": ["figma"],
+  "documentAccess": "dynamic-page",
+  "id": "1544159543717352620",
   "networkAccess": {
     "allowedDomains": [
       "https://cozy-docs-proxy.dsdocs.workers.dev",

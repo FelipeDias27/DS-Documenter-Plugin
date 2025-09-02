@@ -5,20 +5,15 @@ figma.showUI(__html__, { width: 320, height: 300 });
 async function loadRequiredFonts() {
   try {
     await Promise.all([
-      figma.loadFontAsync({ family: "Inter", style: "Bold" }),
-      figma.loadFontAsync({ family: "Inter", style: "Regular" }),
-      figma.loadFontAsync({ family: "Inter", style: "Medium" }),
-      figma.loadFontAsync({ family: "Roboto Mono", style: "Regular" }) // ✅ Para code snippets
+      figma.loadFontAsync({ family: "Oatmeal Pro 2", style: "Bold" }),
+      figma.loadFontAsync({ family: "Oatmeal Pro 2", style: "Regular" }),
+      figma.loadFontAsync({ family: "Oatmeal Pro 2", style: "SemiBold" }),
+      figma.loadFontAsync({ family: "Roboto Mono", style: "Regular" })
     ]);
-    console.log('Fontes Inter e Roboto Mono carregadas com sucesso');
+    console.log('✅ Fontes Oatmeal Pro 2 e Roboto Mono carregadas com sucesso');
   } catch (error) {
-    console.error('Erro ao carregar fontes:', error);
-    await Promise.all([
-      figma.loadFontAsync({ family: "Roboto", style: "Bold" }),
-      figma.loadFontAsync({ family: "Roboto", style: "Regular" }),
-      figma.loadFontAsync({ family: "Roboto", style: "Medium" })
-    ]);
-    console.log('Usando Roboto como fallback');
+    console.error('❌ Erro ao carregar Oatmeal Pro 2:', error);
+    throw error;
   }
 }
 
@@ -52,77 +47,61 @@ function organizeDataByCategory(data: string[][], componentName: string) {
   return organized;
 }
 
-// Função para criar linha divisória (Divider) com cor #E4E4E8 e 2px
-function createDividerLine(): FrameNode {
+// Função para criar linha divisória (Divider) com cor #E4E4E8 e altura customizável
+function createDividerLine(height: number = 2): FrameNode {
   const line = figma.createFrame();
   line.name = "Divider";
-  line.resize(100, 2); // 2px de altura
+  line.resize(100, height);
   line.fills = [{ type: 'SOLID', color: { r: 0.894, g: 0.894, b: 0.909 } }]; // #E4E4E8
   return line;
 }
 
-// Função para criar placeholder de imagem (CORRIGIDA - constraints para centralização)
-function createImagePlaceholder(): FrameNode {
-  const placeholder = figma.createFrame();
-  placeholder.name = "Image Placeholder";
-  placeholder.resize(330, 435);
-  placeholder.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
-  placeholder.strokeWeight = 6;
-  placeholder.strokeAlign = 'INSIDE';
-  placeholder.strokes = [{ type: 'SOLID', color: { r: 0.894, g: 0.894, b: 0.909 } }];
-  placeholder.cornerRadius = 32;
-  
-  // Criar o texto
-  const text = figma.createText();
-  text.characters = "Image";
-  text.fontSize = 21;
-  text.fontName = { family: "Inter", style: "Regular" };
-  text.fills = [{ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 } }];
-  text.textAlignHorizontal = 'CENTER';
-  text.textAlignVertical = 'CENTER';
-  
-  // ✅ PRIMEIRO: Adicionar o texto ao frame
-  placeholder.appendChild(text);
-  
-  // ✅ SEGUNDO: Posicionar o texto no centro
-  text.x = (placeholder.width - text.width) / 2;
-  text.y = (placeholder.height - text.height) / 2;
-  
-  // ✅ TERCEIRO: Definir constraints para manter centralizado
-  text.constraints = {
-    horizontal: 'CENTER',  // Centralizar horizontalmente
-    vertical: 'CENTER'     // Centralizar verticalmente
-  };
-  
-  return placeholder;
-}
-
-// Função para criar texto com suporte a markdown **bold**, ``code`` e bullet list (CORRIGIDA)
+// Função para criar texto (CORRIGIDA - com line-height e letter spacing)
 async function createSimpleText(content: string, fontSize: number, fontStyle: string, isBulletPoint: boolean = false): Promise<TextNode> {
   const textNode = figma.createText();
   
-  // Primeiro, remover o markdown e criar o texto limpo
+  // ✅ PRIMEIRO: Definir fonte ANTES de characters
+  let oatmealStyle = fontStyle;
+  if (fontStyle === "Medium") {
+    oatmealStyle = "SemiBold"; // Medium -> SemiBold
+  }
+  
+  // ✅ GARANTIR que só use estilos válidos
+  const validStyles = ["Bold", "Regular", "SemiBold"];
+  if (!validStyles.includes(oatmealStyle)) {
+    console.warn(`Estilo ${oatmealStyle} não encontrado, usando Regular`);
+    oatmealStyle = "Regular";
+  }
+  
+  textNode.fontName = { family: "Oatmeal Pro 2", style: oatmealStyle as any };
+  
+  // ✅ SEGUNDO: Processar conteúdo
   let cleanContent = content.replace(/\*\*(.*?)\*\*/g, '$1'); // Remove **bold**
   cleanContent = cleanContent.replace(/`(.*?)`/g, '$1'); // Remove `code`
   
-  // Se for bullet point, não adicionar "•" - usar funcionalidade nativa do Figma
   if (isBulletPoint) {
     cleanContent = cleanContent.replace(/^• /, '');
   }
   
   textNode.characters = cleanContent;
   textNode.fontSize = fontSize;
-  textNode.fontName = { family: "Inter", style: fontStyle as any };
   textNode.fills = [{ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }];
   textNode.textAutoResize = 'HEIGHT';
+  
+  // ✅ CONFIGURAÇÕES DE TIPOGRAFIA
+  textNode.lineHeight = { value: 130, unit: 'PERCENT' }; // 130% line-height para todos os textos
+  
+  // ✅ Letter spacing -2% apenas para títulos (Bold e SemiBold)
+  if (oatmealStyle === "Bold" || oatmealStyle === "SemiBold") {
+    textNode.letterSpacing = { value: -2, unit: 'PERCENT' }; // -2% letter spacing para títulos
+  }
   
   // Aplicar bullet list nativo do Figma
   if (isBulletPoint) {
     textNode.setRangeListOptions(0, textNode.characters.length, { type: 'UNORDERED' });
   }
   
-  // ✅ NOVA ABORDAGEM: Processar ambos os tipos de formatação juntos
-  // Criar array de formatações para aplicar na ordem correta
+  // ✅ Processar formatações markdown
   const formatRanges: Array<{
     start: number;
     end: number;
@@ -130,7 +109,7 @@ async function createSimpleText(content: string, fontSize: number, fontStyle: st
     text: string;
   }> = [];
   
-  // ✅ 1. Encontrar todas as formatações BOLD no texto original
+  // Encontrar formatações BOLD
   const boldRegex = /\*\*(.*?)\*\*/g;
   let match;
   
@@ -144,7 +123,7 @@ async function createSimpleText(content: string, fontSize: number, fontStyle: st
     });
   }
   
-  // ✅ 2. Encontrar todas as formatações CODE no texto original
+  // Encontrar formatações CODE
   const codeRegex = /`(.*?)`/g;
   
   codeRegex.lastIndex = 0;
@@ -157,31 +136,26 @@ async function createSimpleText(content: string, fontSize: number, fontStyle: st
     });
   }
   
-  // ✅ 3. Ordenar por posição (do início para o fim)
+  // Ordenar por posição
   formatRanges.sort((a, b) => a.start - b.start);
   
-  // ✅ 4. Aplicar formatações calculando offset acumulativo
+  // Aplicar formatações
   let offset = 0;
   
   for (const range of formatRanges) {
-    // Calcular posição no texto limpo
     const cleanStart = range.start - offset;
     const cleanEnd = cleanStart + range.text.length;
     
     try {
       if (range.type === 'bold') {
-        // Aplicar negrito
-        textNode.setRangeFontName(cleanStart, cleanEnd, { family: "Inter", style: "Bold" });
-        // Atualizar offset: **texto** = 4 caracteres removidos
+        textNode.setRangeFontName(cleanStart, cleanEnd, { family: "Oatmeal Pro 2", style: "Bold" });
         offset += 4;
       } else if (range.type === 'code') {
-        // Aplicar formatação de código
         textNode.setRangeFontName(cleanStart, cleanEnd, { family: "Roboto Mono", style: "Regular" });
         textNode.setRangeFills(cleanStart, cleanEnd, [{ 
           type: 'SOLID', 
           color: { r: 0.8, g: 0.2, b: 0.6 }
         }]);
-        // Atualizar offset: `texto` = 2 caracteres removidos
         offset += 2;
       }
     } catch (error) {
@@ -190,7 +164,7 @@ async function createSimpleText(content: string, fontSize: number, fontStyle: st
       // Fallback para code
       if (range.type === 'code') {
         try {
-          textNode.setRangeFontName(cleanStart, cleanEnd, { family: "Inter", style: "Regular" });
+          textNode.setRangeFontName(cleanStart, cleanEnd, { family: "Oatmeal Pro 2", style: "Regular" });
           textNode.setRangeFills(cleanStart, cleanEnd, [{ 
             type: 'SOLID', 
             color: { r: 0.8, g: 0.2, b: 0.6 }
@@ -205,7 +179,7 @@ async function createSimpleText(content: string, fontSize: number, fontStyle: st
   return textNode;
 }
 
-// Função para criar Props Table refinada
+// Função para criar Props Table refinada (CORRIGIDA - layoutSizing após appendChild)
 async function createPropsTable(rows: string[][], title: string): Promise<FrameNode> {
   const containerFrame = figma.createFrame();
   containerFrame.name = `Props Container: ${title}`;
@@ -214,10 +188,10 @@ async function createPropsTable(rows: string[][], title: string): Promise<FrameN
   containerFrame.itemSpacing = 36;
   containerFrame.fills = [];
 
-  // Título da subcategoria
+  // ✅ REMOVIDO: Frame "Title & Divider" - agora apenas título direto com Bold
   const titleText = await createSimpleText(title, 28, "Bold");
   containerFrame.appendChild(titleText);
-  titleText.layoutSizingHorizontal = 'FILL';
+  titleText.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
 
   // Tabela sem borda externa
   const tableFrame = figma.createFrame();
@@ -238,34 +212,34 @@ async function createPropsTable(rows: string[][], title: string): Promise<FrameN
   headerRow.counterAxisSizingMode = 'AUTO';
   headerRow.itemSpacing = 24;
   headerRow.fills = [];
-  headerRow.paddingLeft = 0;   // ✅ padding 0px
-  headerRow.paddingRight = 0;  // ✅ padding 0px
-  headerRow.paddingTop = 24;    // ✅ padding 24px
-  headerRow.paddingBottom = 24; // ✅ padding 24px
+  headerRow.paddingLeft = 0;
+  headerRow.paddingRight = 0;
+  headerRow.paddingTop = 24;
+  headerRow.paddingBottom = 24;
 
   for (let i = 0; i < predefinedHeaders.length; i++) {
     const header = predefinedHeaders[i];
-    const cellText = await createSimpleText(header, 18, "Bold"); // ✅ 22px -> 18px
+    const cellText = await createSimpleText(header, 18, "Bold");
     headerRow.appendChild(cellText);
     if (header === "Description") {
       cellText.resize(310, cellText.height);
-      cellText.layoutSizingHorizontal = 'FIXED';
+      cellText.layoutSizingHorizontal = 'FIXED'; // ✅ APÓS appendChild
     } else {
-      cellText.layoutSizingHorizontal = 'FILL';
+      cellText.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
     }
   }
 
   // Stroke bottom 2px no Header Table (INSIDE)
   headerRow.strokes = [{ type: 'SOLID', color: { r: 0.894, g: 0.894, b: 0.909 } }];
   headerRow.strokeWeight = 2;
-  headerRow.strokeAlign = 'INSIDE'; // ✅ INSIDE
+  headerRow.strokeAlign = 'INSIDE';
   headerRow.strokeTopWeight = 0;
   headerRow.strokeRightWeight = 0;
   headerRow.strokeLeftWeight = 0;
   headerRow.strokeBottomWeight = 2;
 
   tableFrame.appendChild(headerRow);
-  headerRow.layoutSizingHorizontal = 'FILL';
+  headerRow.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
 
   // Linhas da tabela com stroke bottom
   for (let i = 0; i < rows.length; i++) {
@@ -277,8 +251,8 @@ async function createPropsTable(rows: string[][], title: string): Promise<FrameN
     rowFrame.counterAxisSizingMode = 'AUTO';
     rowFrame.itemSpacing = 24;
     rowFrame.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
-    rowFrame.paddingLeft = 0;   // ✅ padding 0px
-    rowFrame.paddingRight = 0;  // ✅ padding 0px
+    rowFrame.paddingLeft = 0;
+    rowFrame.paddingRight = 0;
     rowFrame.paddingTop = 24;    
     rowFrame.paddingBottom = 24;
 
@@ -287,7 +261,7 @@ async function createPropsTable(rows: string[][], title: string): Promise<FrameN
     if (!isLastRow) {
       rowFrame.strokes = [{ type: 'SOLID', color: { r: 0.894, g: 0.894, b: 0.909 } }];
       rowFrame.strokeWeight = 1;
-      rowFrame.strokeAlign = 'INSIDE'; // ✅ INSIDE
+      rowFrame.strokeAlign = 'INSIDE';
       rowFrame.strokeTopWeight = 0;
       rowFrame.strokeRightWeight = 0;
       rowFrame.strokeLeftWeight = 0;
@@ -301,299 +275,264 @@ async function createPropsTable(rows: string[][], title: string): Promise<FrameN
       rowFrame.appendChild(cellText);
       if (j === 3) {
         cellText.resize(310, cellText.height);
-        cellText.layoutSizingHorizontal = 'FIXED';
+        cellText.layoutSizingHorizontal = 'FIXED'; // ✅ APÓS appendChild
       } else {
-        cellText.layoutSizingHorizontal = 'FILL';
+        cellText.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
       }
     }
     tableFrame.appendChild(rowFrame);
-    rowFrame.layoutSizingHorizontal = 'FILL';
+    rowFrame.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
   }
 
   containerFrame.appendChild(tableFrame);
-  tableFrame.layoutSizingHorizontal = 'FILL';
+  tableFrame.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
 
   return containerFrame;
 }
 
-// Função principal para criar o layout estruturado
+// Função principal para criar o layout estruturado (CORRIGIDA - Image à direita primeiro e estrutura Content separada)
 async function createStructuredDocumentation(data: string[][], componentName: string, mainFrame: FrameNode) {
   const organizedData = organizeDataByCategory(data, componentName);
   
-  console.log('Organized data:', organizedData);
+  let categoryIndex = 0;
   
-  for (const categoryName in organizedData) {
-    const subCategories = organizedData[categoryName];
-
-    // ✅ Tratar "2. Props" como tabela
-    if (categoryName === "2. Props") {
-      const categoryFrame = figma.createFrame();
-      categoryFrame.name = `Category: ${categoryName}`;
-      categoryFrame.layoutMode = 'VERTICAL';
-      categoryFrame.counterAxisSizingMode = 'AUTO';
-      categoryFrame.itemSpacing = 88;
-      categoryFrame.fills = [];
-
-      // Título + Divider
-      const titleDividerFrame = figma.createFrame();
-      titleDividerFrame.name = "Title & Divider";
-      titleDividerFrame.layoutMode = 'VERTICAL';
-      titleDividerFrame.counterAxisSizingMode = 'AUTO';
-      titleDividerFrame.itemSpacing = 24;
-      titleDividerFrame.fills = [];
-
-      const categoryTitle = await createSimpleText(categoryName, 36, "Bold");
-      titleDividerFrame.appendChild(categoryTitle);
-      categoryTitle.layoutSizingHorizontal = 'FILL';
-
-      const divider = createDividerLine();
-      titleDividerFrame.appendChild(divider);
-      divider.layoutSizingHorizontal = 'FILL';
-
-      categoryFrame.appendChild(titleDividerFrame);
-      titleDividerFrame.layoutSizingHorizontal = 'FILL';
-
-      // Para cada subcategoria (Design Props, Code Props)
-      for (const subCategoryName in subCategories) {
-        const guidelines = subCategories[subCategoryName];
-        const tableRows = guidelines.map(g => g.split('|').map(cell => cell.trim()));
-        const propsTable = await createPropsTable(tableRows, subCategoryName);
-        categoryFrame.appendChild(propsTable);
-        propsTable.layoutSizingHorizontal = 'FILL';
-      }
-
-      mainFrame.appendChild(categoryFrame);
-      categoryFrame.layoutSizingHorizontal = 'FILL';
-      continue; // Pula o processamento padrão para "2. Props"
-    }
-
-    // ✅ Tratar "3. Anatomy" com layout especial
-    if (categoryName === "3. Anatomy") {
-      const categoryFrame = figma.createFrame();
-      categoryFrame.name = `Category: ${categoryName}`;
-      categoryFrame.layoutMode = 'VERTICAL';
-      categoryFrame.counterAxisSizingMode = 'AUTO';
-      categoryFrame.itemSpacing = 60;
-      categoryFrame.fills = [];
-      
-      // 1. Título + Divider
-      const titleDividerFrame = figma.createFrame();
-      titleDividerFrame.name = "Title & Divider";
-      titleDividerFrame.layoutMode = 'VERTICAL';
-      titleDividerFrame.counterAxisSizingMode = 'AUTO';
-      titleDividerFrame.itemSpacing = 24;
-      titleDividerFrame.fills = [];
-      
-      const categoryTitle = await createSimpleText(categoryName, 36, "Bold");
-      titleDividerFrame.appendChild(categoryTitle);
-      categoryTitle.layoutSizingHorizontal = 'FILL';
-      
-      const divider = createDividerLine();
-      titleDividerFrame.appendChild(divider);
-      divider.layoutSizingHorizontal = 'FILL';
-      
-      categoryFrame.appendChild(titleDividerFrame);
-      titleDividerFrame.layoutSizingHorizontal = 'FILL';
-      
-      // ✅ 2. Image Placeholder único (FILL CONTAINER)
-      const imagePlaceholder = createImagePlaceholder();
-      categoryFrame.appendChild(imagePlaceholder);
-      imagePlaceholder.layoutSizingHorizontal = 'FILL'; // ✅ Preenche toda a largura
-      
-      // ✅ 3. SubCategories (SEM placeholders individuais)
-      const subCategoriesFrame = figma.createFrame();
-      subCategoriesFrame.name = "SubCategories";
-      subCategoriesFrame.layoutMode = 'VERTICAL';
-      subCategoriesFrame.counterAxisSizingMode = 'AUTO';
-      subCategoriesFrame.itemSpacing = 96;
-      subCategoriesFrame.fills = [];
-      
-      // Processar subcategorias SEM imagens
-      for (const subCategoryName in subCategories) {
-        const guidelines = subCategories[subCategoryName];
-        
-        if (guidelines.length === 0) continue;
-        
-        // ✅ Layout APENAS COM TEXTO (sem imagem placeholder)
-        const subCategoryFrame = figma.createFrame();
-        subCategoryFrame.name = `SubCategory: ${subCategoryName}`;
-        subCategoryFrame.layoutMode = 'VERTICAL';
-        subCategoriesFrame.counterAxisSizingMode = 'AUTO';
-        subCategoryFrame.itemSpacing = 24;
-        subCategoryFrame.fills = [];
-        
-        // Título da subcategoria (H3) - Bold
-        if (subCategoryName.trim() && subCategoryName !== 'Main Content') {
-          const subCategoryTitle = await createSimpleText(subCategoryName, 28, "Bold");
-          subCategoryFrame.appendChild(subCategoryTitle);
-          subCategoryTitle.layoutSizingHorizontal = 'FILL';
-        }
-        
-        // Guidelines como bullet points
-        for (const guideline of guidelines) {
-          if (!guideline.trim()) continue;
-          
-          const bulletText = await createSimpleText(guideline, 22, "Regular", true);
-          subCategoryFrame.appendChild(bulletText);
-          bulletText.layoutSizingHorizontal = 'FILL';
-        }
-        
-        subCategoriesFrame.appendChild(subCategoryFrame);
-        subCategoryFrame.layoutSizingHorizontal = 'FILL';
-      }
-      
-      // Adicionar subcategorias à categoria
-      if (subCategoriesFrame.children.length > 0) {
-        categoryFrame.appendChild(subCategoriesFrame);
-        subCategoriesFrame.layoutSizingHorizontal = 'FILL';
-      }
-      
-      mainFrame.appendChild(categoryFrame);
-      categoryFrame.layoutSizingHorizontal = 'FILL';
-      continue; // Pula o processamento padrão para "3. Anatomy"
-    }
-
-    console.log('Processing category:', categoryName);
-    
-    // ✅ Processamento padrão para outras categorias (1. Description, 4. Usage, etc.)
+  for (const [categoryName, subCategories] of Object.entries(organizedData)) {
+    // Criar frame da categoria
     const categoryFrame = figma.createFrame();
-    categoryFrame.name = `Category: ${categoryName}`;
+    categoryFrame.name = categoryName;
+    categoryFrame.fills = [];
     categoryFrame.layoutMode = 'VERTICAL';
     categoryFrame.counterAxisSizingMode = 'AUTO';
-    categoryFrame.itemSpacing = 60;
-    categoryFrame.fills = [];
+    categoryFrame.itemSpacing = 60; // ✅ 60px entre Title & Divider e SubCategories
     
-    // ✅ 1.1 Criar frame para título + divider
-    const titleDividerFrame = figma.createFrame();
-    titleDividerFrame.name = "Title & Divider";
-    titleDividerFrame.layoutMode = 'VERTICAL';
-    titleDividerFrame.counterAxisSizingMode = 'AUTO';
-    titleDividerFrame.itemSpacing = 24;
-    titleDividerFrame.fills = [];
-    
-    // 1.2 Título da categoria (H2)
+    // ✅ Frame "Title & Divider" para CADA CATEGORY
+    const categoryTitleDividerFrame = figma.createFrame();
+    categoryTitleDividerFrame.name = "Title & Divider";
+    categoryTitleDividerFrame.layoutMode = 'VERTICAL';
+    categoryTitleDividerFrame.counterAxisSizingMode = 'AUTO';
+    categoryTitleDividerFrame.itemSpacing = 24;
+    categoryTitleDividerFrame.fills = [];
+
+    // ✅ Título da categoria com 36px e BOLD
     const categoryTitle = await createSimpleText(categoryName, 36, "Bold");
-    titleDividerFrame.appendChild(categoryTitle);
-    categoryTitle.layoutSizingHorizontal = 'FILL';
+    categoryTitleDividerFrame.appendChild(categoryTitle);
+    categoryTitle.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
+
+    // ✅ Divider após título da categoria
+    const categoryTitleDivider = createDividerLine(2);
+    categoryTitleDividerFrame.appendChild(categoryTitleDivider);
+    categoryTitleDivider.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
+
+    categoryFrame.appendChild(categoryTitleDividerFrame);
+    categoryTitleDividerFrame.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
     
-    // 1.3 Linha divisória
-    const divider = createDividerLine();
-    titleDividerFrame.appendChild(divider);
-    divider.layoutSizingHorizontal = 'FILL';
+    // ✅ VERIFICAR SE É A CATEGORIA "3.Anatomy" PARA TRATAMENTO ESPECIAL
+    const isAnatomyCategory = categoryName.toLowerCase().includes('anatomy');
     
-    // ✅ Adicionar o frame título+divider ao categoryFrame
-    categoryFrame.appendChild(titleDividerFrame);
-    titleDividerFrame.layoutSizingHorizontal = 'FILL';
+    // ✅ ADICIONAR IMAGE PLACEHOLDER PARA ANATOMY ENTRE TITLE & DIVIDER E SUBCATEGORIAS
+    if (isAnatomyCategory) {
+      // ✅ Criar Image Placeholder específico para Anatomy
+      const anatomyImagePlaceholder = createImagePlaceholder();
+      categoryFrame.appendChild(anatomyImagePlaceholder);
+      anatomyImagePlaceholder.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
+    }
     
-    // ✅ 2. Criar frame para agrupar todas as subcategorias
-    const subCategoriesFrame = figma.createFrame();
-    subCategoriesFrame.name = "SubCategories";
-    subCategoriesFrame.layoutMode = 'VERTICAL';
-    subCategoriesFrame.counterAxisSizingMode = 'AUTO';
-    subCategoriesFrame.itemSpacing = 96;
-    subCategoriesFrame.fills = [];
+    // ✅ VERIFICAR SE É A CATEGORIA "1. Description" PARA TRATAMENTO ESPECIAL
+    const isDescriptionCategory = categoryName.toLowerCase().includes('description');
     
-    // ✅ 3. Processar subcategorias com alternância de layout
-    let subCategoryIndex = 0; // Contador para alternância
+    // ✅ CONTAINER PARA SUBCATEGORIAS (sempre criar se houver subcategorias)
+    const hasSubCategories = Object.keys(subCategories).length > 0;
+    let subCategoriesContainer: FrameNode | null = null;
     
-    for (const subCategoryName in subCategories) {
-      const guidelines = subCategories[subCategoryName];
+    if (hasSubCategories) {
+      subCategoriesContainer = figma.createFrame();
+      subCategoriesContainer.name = "SubCategories";
+      subCategoriesContainer.fills = [];
+      subCategoriesContainer.layoutMode = 'VERTICAL';
+      subCategoriesContainer.counterAxisSizingMode = 'AUTO';
+      subCategoriesContainer.itemSpacing = 96; // ✅ 96px entre subcategorias
+    }
+    
+    // ✅ CONTADOR PARA ALTERNÂNCIA DE IMAGEM (esquerda/direita) - COMEÇAR À DIREITA
+    let subCategoryIndex = 0;
+    
+    // Processar subcategorias
+    for (const [subCategoryName, content] of Object.entries(subCategories)) {
+      // ✅ VERIFICAR SE É TABELA (contém linhas com |)
+      const hasTableData = content.some(item => item.includes('|'));
       
-      console.log('Processing subcategory:', subCategoryName, 'Guidelines:', guidelines.length);
-      
-      if (guidelines.length === 0) continue;
-      
-      // Para "Main Content" (Description), não mostrar layout com imagem
-      if (subCategoryName === 'Main Content') {
-        // Layout simples só com texto
-        const descriptionFrame = figma.createFrame();
-        descriptionFrame.name = "Description";
-        descriptionFrame.layoutMode = 'VERTICAL';
-        descriptionFrame.counterAxisSizingMode = 'AUTO';
-        descriptionFrame.itemSpacing = 36;
-        descriptionFrame.fills = [];
+      if (hasTableData) {
+        // ✅ CRIAR TABELA FORMATADA
+        const tableRows = content
+          .filter(item => item.includes('|'))
+          .map(item => item.split('|').map(cell => cell.trim()));
         
-        for (const guideline of guidelines) {
-          if (!guideline.trim()) continue;
-          const text = await createSimpleText(guideline, 30, "Regular");
-          descriptionFrame.appendChild(text);
-          text.layoutSizingHorizontal = 'FILL';
+        const propsTable = await createPropsTable(tableRows, subCategoryName);
+        
+        if (subCategoriesContainer) {
+          subCategoriesContainer.appendChild(propsTable);
+          propsTable.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
+        }
+      } else {
+        // ✅ CRIAR SUBCATEGORIA NORMAL
+        const subCategoryFrame = figma.createFrame();
+        subCategoryFrame.name = `SubCategory: ${subCategoryName}`;
+        subCategoryFrame.fills = [];
+        subCategoryFrame.layoutMode = 'VERTICAL';
+        subCategoryFrame.counterAxisSizingMode = 'AUTO';
+        subCategoryFrame.itemSpacing = 12;
+        
+        // ✅ DETERMINAR SE DEVE TER IMAGE PLACEHOLDER E SUA POSIÇÃO
+        const shouldAddImage = !isAnatomyCategory && !isDescriptionCategory;
+        const imageOnLeft = subCategoryIndex % 2 === 1; // ✅ INVERTIDO: Ímpar = esquerda, Par = direita (COMEÇAR À DIREITA)
+        
+        if (shouldAddImage) {
+          // ✅ CRIAR FRAME HORIZONTAL PARA CONTENT + IMAGE PLACEHOLDER
+          const contentImageFrame = figma.createFrame();
+          contentImageFrame.name = "Content & Image";
+          contentImageFrame.fills = [];
+          contentImageFrame.layoutMode = 'HORIZONTAL';
+          contentImageFrame.counterAxisSizingMode = 'AUTO';
+          contentImageFrame.itemSpacing = 108; // ✅ 108px entre content e image
+          contentImageFrame.primaryAxisAlignItems = 'MIN'; // Alinhar ao topo
+          
+          // ✅ CONTAINER PARA O CONTEÚDO (título + conteúdo juntos)
+          const contentContainer = figma.createFrame();
+          contentContainer.name = "Content";
+          contentContainer.fills = [];
+          contentContainer.layoutMode = 'VERTICAL';
+          contentContainer.counterAxisSizingMode = 'AUTO';
+          contentContainer.itemSpacing = 24; // ✅ 24px (não 12px)
+          
+          // ✅ CATEGORIA DESCRIPTION: NÃO TEM TÍTULO DE SUBCATEGORIA
+          if (!isDescriptionCategory) {
+            // ✅ Título da subcategoria com 28px e BOLD (dentro do Content)
+            const subCategoryTitle = await createSimpleText(subCategoryName, 28, "Bold");
+            contentContainer.appendChild(subCategoryTitle);
+            subCategoryTitle.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
+          }
+          
+          // ✅ IMAGE PLACEHOLDER (frame separado)
+          const imagePlaceholder = createImagePlaceholder();
+          
+          // ✅ ALTERNAR POSIÇÃO: ESQUERDA OU DIREITA
+          if (imageOnLeft) {
+            // Image à esquerda, content à direita
+            contentImageFrame.appendChild(imagePlaceholder);
+            contentImageFrame.appendChild(contentContainer);
+          } else {
+            // Content à esquerda, image à direita
+            contentImageFrame.appendChild(contentContainer);
+            contentImageFrame.appendChild(imagePlaceholder);
+          }
+          
+          // ✅ CONFIGURAR SIZING APÓS appendChild
+          contentContainer.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
+          
+          // Adicionar conteúdo ao container Content
+          for (const item of content) {
+            if (item.trim() && !item.includes('Image')) {
+              let contentFontSize = 22;
+              if (isDescriptionCategory) {
+                contentFontSize = 30;
+              }
+              
+              const shouldHaveBullet = !isDescriptionCategory;
+              
+              const contentText = await createSimpleText(item, contentFontSize, "Regular", shouldHaveBullet);
+              contentContainer.appendChild(contentText);
+              contentText.layoutSizingHorizontal = 'FILL';
+            }
+          }
+          
+          subCategoryFrame.appendChild(contentImageFrame);
+          contentImageFrame.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
+          
+        } else {
+          // ✅ SEM IMAGE PLACEHOLDER (Description ou Anatomy)
+          
+          // ✅ CATEGORIA DESCRIPTION: NÃO TEM TÍTULO DE SUBCATEGORIA
+          if (!isDescriptionCategory) {
+            // ✅ Título da subcategoria com 28px e BOLD
+            const subCategoryTitle = await createSimpleText(subCategoryName, 28, "Bold");
+            subCategoryFrame.appendChild(subCategoryTitle);
+            subCategoryTitle.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
+          }
+          
+          for (const item of content) {
+            if (item.trim() && !item.includes('Image')) {
+              // ✅ Tamanho da fonte especial para Description Category
+              let contentFontSize = 22; // ✅ Padrão: 22px
+              if (isDescriptionCategory) {
+                contentFontSize = 30; // ✅ Description: 30px
+              }
+              
+              // ✅ CATEGORIA DESCRIPTION: SEM BULLET POINT
+              const shouldHaveBullet = !isDescriptionCategory; // ✅ Description = sem bullet
+              
+              const contentText = await createSimpleText(item, contentFontSize, "Regular", shouldHaveBullet);
+              subCategoryFrame.appendChild(contentText);
+              contentText.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
+            }
+          }
         }
         
-        // ✅ Adicionar ao frame de subcategorias
-        subCategoriesFrame.appendChild(descriptionFrame);
-        descriptionFrame.layoutSizingHorizontal = 'FILL';
-        continue; // Não conta para alternância
-      }
-      
-      // ✅ Layout normal com alternância de posição da imagem
-      const subCategoryFrame = figma.createFrame();
-      subCategoryFrame.name = `SubCategory: ${subCategoryName}`;
-      subCategoryFrame.layoutMode = 'HORIZONTAL';
-      subCategoryFrame.counterAxisSizingMode = 'AUTO';
-      subCategoryFrame.itemSpacing = 108;
-      subCategoryFrame.fills = [];
-      
-      // Frame de conteúdo (texto)
-      const contentFrame = figma.createFrame();
-      contentFrame.name = "Content";
-      contentFrame.layoutMode = 'VERTICAL';
-      contentFrame.counterAxisSizingMode = 'AUTO';
-      contentFrame.itemSpacing = 24;
-      contentFrame.fills = [];
-      
-      // ✅ Título da subcategoria (H3) - Bold
-      if (subCategoryName.trim()) {
-        const subCategoryTitle = await createSimpleText(subCategoryName, 28, "Bold");
-        contentFrame.appendChild(subCategoryTitle);
-        subCategoryTitle.layoutSizingHorizontal = 'FILL';
-      }
-      
-      // Guidelines como bullet points
-      for (const guideline of guidelines) {
-        if (!guideline.trim()) continue;
+        if (subCategoriesContainer) {
+          subCategoriesContainer.appendChild(subCategoryFrame);
+          subCategoryFrame.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
+        }
         
-        const bulletText = await createSimpleText(guideline, 22, "Regular", true);
-        contentFrame.appendChild(bulletText);
-        bulletText.layoutSizingHorizontal = 'FILL';
+        subCategoryIndex++; // ✅ Incrementar para alternância
       }
-      
-      // Placeholder de imagem
-      const imagePlaceholder = createImagePlaceholder();
-      
-      // ✅ ALTERNÂNCIA: Par = Content à esquerda, Ímpar = Content à direita
-      const isEven = subCategoryIndex % 2 === 0;
-      
-      if (isEven) {
-        // SubCategory par: Content à esquerda, Image à direita
-        subCategoryFrame.appendChild(contentFrame);
-        subCategoryFrame.appendChild(imagePlaceholder);
-      } else {
-        // SubCategory ímpar: Image à esquerda, Content à direita
-        subCategoryFrame.appendChild(imagePlaceholder);
-        subCategoryFrame.appendChild(contentFrame);
-      }
-      
-      contentFrame.layoutSizingHorizontal = 'FILL';
-      
-      // ✅ Adicionar subcategoria ao frame de subcategorias
-      subCategoriesFrame.appendChild(subCategoryFrame);
-      subCategoryFrame.layoutSizingHorizontal = 'FILL';
-      
-      // ✅ Incrementar contador para próxima alternância
-      subCategoryIndex++;
     }
     
-    // ✅ Adicionar frame de subcategorias à categoria (se não estiver vazio)
-    if (subCategoriesFrame.children.length > 0) {
-      categoryFrame.appendChild(subCategoriesFrame);
-      subCategoriesFrame.layoutSizingHorizontal = 'FILL';
+    // ✅ ADICIONAR CONTAINER DE SUBCATEGORIAS À CATEGORIA (se existir)
+    if (subCategoriesContainer && hasSubCategories) {
+      categoryFrame.appendChild(subCategoriesContainer);
+      subCategoriesContainer.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
     }
     
-    // Adicionar categoria ao frame principal
+    // Adicionar à página principal
     mainFrame.appendChild(categoryFrame);
-    categoryFrame.layoutSizingHorizontal = 'FILL';
+    categoryFrame.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
+    
+    categoryIndex++;
   }
+}
+
+// Função para criar placeholder de imagem (CORRIGIDA - melhor centralização)
+function createImagePlaceholder(): FrameNode {
+  const placeholder = figma.createFrame();
+  placeholder.name = "Image Placeholder";
+  placeholder.resize(330, 435);
+  placeholder.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+  placeholder.strokeWeight = 6;
+  placeholder.strokeAlign = 'INSIDE';
+  placeholder.strokes = [{ type: 'SOLID', color: { r: 0.894, g: 0.894, b: 0.909 } }];
+  placeholder.cornerRadius = 32;
+  
+  const text = figma.createText();
+  text.fontName = { family: "Oatmeal Pro 2", style: "Regular" };
+  text.characters = "Image";
+  text.fontSize = 21;
+  text.fills = [{ type: 'SOLID', color: { r: 0.5, g: 0.5, b: 0.5 } }];
+  text.textAlignHorizontal = 'CENTER';
+  text.textAlignVertical = 'CENTER';
+  text.lineHeight = { value: 130, unit: 'PERCENT' };
+  
+  placeholder.appendChild(text);
+  
+  // ✅ MELHOR CENTRALIZAÇÃO: Usar resize para ocupar todo o espaço e depois centralizar
+  text.resize(placeholder.width, text.height);
+  text.x = 0;
+  text.y = (placeholder.height - text.height) / 2;
+  
+  text.constraints = {
+    horizontal: 'CENTER',
+    vertical: 'CENTER'
+  };
+  
+  return placeholder;
 }
 
 figma.ui.onmessage = async (msg) => {
@@ -602,49 +541,52 @@ figma.ui.onmessage = async (msg) => {
     
     console.log('Component:', component);
     console.log('Data rows:', data.length);
-    
-    // CARREGUE AS FONTES PRIMEIRO
-    await loadRequiredFonts();
-
-    // Criar o frame principal com largura fixa escalada
-    const mainFrame = figma.createFrame();
-    mainFrame.name = `UI Docs: ${component}`;
-    mainFrame.resize(1115, 150); // ✅ 988 -> 1115 (1.13x), altura também escalada
-    mainFrame.layoutMode = 'VERTICAL';
-    mainFrame.counterAxisSizingMode = 'AUTO';
-    mainFrame.itemSpacing = 108; // ✅ 72 -> 108 (1.5x)
-    mainFrame.paddingLeft = 72; // ✅ 48 -> 72 (1.5x)
-    mainFrame.paddingRight = 72; // ✅ 48 -> 72 (1.5x)
-    mainFrame.paddingTop = 72; // ✅ 48 -> 72 (1.5x)
-    mainFrame.paddingBottom = 72; // ✅ 48 -> 72 (1.5x)
-    mainFrame.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
 
     try {
-      // ✅ Criar cabeçalho SEM auto-layout (HUG)
+      // CARREGUE AS FONTES PRIMEIRO
+      await loadRequiredFonts();
+
+      // Criar o frame principal com largura fixa escalada
+      const mainFrame = figma.createFrame();
+      mainFrame.name = `UI Docs: ${component}`;
+      mainFrame.resize(1115, 150);
+      mainFrame.layoutMode = 'VERTICAL';
+      mainFrame.counterAxisSizingMode = 'AUTO';
+      mainFrame.itemSpacing = 108;
+      mainFrame.paddingLeft = 72;
+      mainFrame.paddingRight = 72;
+      mainFrame.paddingTop = 108;
+      mainFrame.paddingBottom = 108;
+      mainFrame.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+      mainFrame.cornerRadius = 40;
+
+      // ✅ Criar cabeçalho COM largura fixa de 916px
       const headerFrame = figma.createFrame();
       headerFrame.name = "Header";
       headerFrame.fills = [];
+      headerFrame.resize(916, 100); // ✅ 916px largura fixa
       
       // Título principal
-      const title = await createSimpleText("UI Guidelines", 72, "Bold"); // ✅ 48 -> 72 (1.5x)
+      const title = await createSimpleText("UI Guidelines", 72, "Bold");
       title.x = 0;
       title.y = 0;
       headerFrame.appendChild(title);
 
       // Subtítulo com nome do componente
-      const subtitle = await createSimpleText(component, 48, "Medium"); // ✅ 32 -> 48 (1.5x)
+      const subtitle = await createSimpleText(component, 48, "SemiBold");
       subtitle.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.2, b: 0.2 } }];
       subtitle.x = 0;
-      subtitle.y = title.height + 24; // ✅ 16 -> 24 (1.5x)
+      subtitle.y = title.height + 24;
       headerFrame.appendChild(subtitle);
 
-      // Ajustar tamanho do headerFrame (HUG)
-      headerFrame.resize(Math.max(title.width, subtitle.width), title.height + 24 + subtitle.height); // ✅ 16 -> 24 (1.5x)
+      // Ajustar apenas a altura para encaixar o conteúdo, mantendo largura fixa
+      const finalHeight = title.height + 24 + subtitle.height;
+      headerFrame.resize(916, finalHeight); // ✅ Manter 916px largura
 
       mainFrame.appendChild(headerFrame);
-      // ❌ Header NÃO tem FILL (fica HUG)
+      headerFrame.layoutSizingHorizontal = 'FIXED'; // ✅ Largura fixa
 
-      // ✅ Criar documentação estruturada (categoryFrames com FILL)
+      // Criar documentação estruturada
       await createStructuredDocumentation(data, component, mainFrame);
 
       // Adicionar à página e focar
@@ -652,7 +594,13 @@ figma.ui.onmessage = async (msg) => {
       figma.viewport.scrollAndZoomIntoView([mainFrame]);
       
     } catch (error) {
-      console.error('Erro ao criar frame:', error);
+      console.error('❌ Erro ao criar frame:', error);
+      
+      if (error instanceof Error && error.message.includes('Oatmeal Pro 2')) {
+        figma.notify('❌ Fonte "Oatmeal Pro 2" não encontrada. Verifique se está instalada.', { error: true });
+      } else {
+        figma.notify('❌ Erro ao criar documentação. Verifique o console.', { error: true });
+      }
     }
   }
 };
