@@ -290,7 +290,7 @@ async function createPropsTable(rows: string[][], title: string): Promise<FrameN
   return containerFrame;
 }
 
-// Função principal para criar o layout estruturado (CORRIGIDA - Image à direita primeiro e estrutura Content separada)
+// Função principal para criar o layout estruturado (CORRIGIDA - Anatomy com layout horizontal especial)
 async function createStructuredDocumentation(data: string[][], componentName: string, mainFrame: FrameNode) {
   const organizedData = organizeDataByCategory(data, componentName);
   
@@ -348,13 +348,22 @@ async function createStructuredDocumentation(data: string[][], componentName: st
       subCategoriesContainer = figma.createFrame();
       subCategoriesContainer.name = "SubCategories";
       subCategoriesContainer.fills = [];
-      subCategoriesContainer.layoutMode = 'VERTICAL';
-      subCategoriesContainer.counterAxisSizingMode = 'AUTO';
-      subCategoriesContainer.itemSpacing = 96; // ✅ 96px entre subcategorias
+      
+      // ✅ LAYOUT ESPECIAL PARA ANATOMY - HORIZONTAL
+      if (isAnatomyCategory) {
+        subCategoriesContainer.layoutMode = 'VERTICAL'; // Vertical para permitir dividers
+        subCategoriesContainer.counterAxisSizingMode = 'AUTO';
+        subCategoriesContainer.itemSpacing = 40; // ✅ 40px spacing para Anatomy
+      } else {
+        subCategoriesContainer.layoutMode = 'VERTICAL';
+        subCategoriesContainer.counterAxisSizingMode = 'AUTO';
+        subCategoriesContainer.itemSpacing = 96; // ✅ 96px entre subcategorias (outras seções)
+      }
     }
     
     // ✅ CONTADOR PARA ALTERNÂNCIA DE IMAGEM (esquerda/direita) - COMEÇAR À DIREITA
     let subCategoryIndex = 0;
+    const subCategoryKeys = Object.keys(subCategories);
     
     // Processar subcategorias
     for (const [subCategoryName, content] of Object.entries(subCategories)) {
@@ -374,112 +383,164 @@ async function createStructuredDocumentation(data: string[][], componentName: st
           propsTable.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
         }
       } else {
-        // ✅ CRIAR SUBCATEGORIA NORMAL
-        const subCategoryFrame = figma.createFrame();
-        subCategoryFrame.name = `SubCategory: ${subCategoryName}`;
-        subCategoryFrame.fills = [];
-        subCategoryFrame.layoutMode = 'VERTICAL';
-        subCategoryFrame.counterAxisSizingMode = 'AUTO';
-        subCategoryFrame.itemSpacing = 12;
-        
-        // ✅ DETERMINAR SE DEVE TER IMAGE PLACEHOLDER E SUA POSIÇÃO
-        const shouldAddImage = !isAnatomyCategory && !isDescriptionCategory;
-        const imageOnLeft = subCategoryIndex % 2 === 1; // ✅ INVERTIDO: Ímpar = esquerda, Par = direita (COMEÇAR À DIREITA)
-        
-        if (shouldAddImage) {
-          // ✅ CRIAR FRAME HORIZONTAL PARA CONTENT + IMAGE PLACEHOLDER
-          const contentImageFrame = figma.createFrame();
-          contentImageFrame.name = "Content & Image";
-          contentImageFrame.fills = [];
-          contentImageFrame.layoutMode = 'HORIZONTAL';
-          contentImageFrame.counterAxisSizingMode = 'AUTO';
-          contentImageFrame.itemSpacing = 108; // ✅ 108px entre content e image
-          contentImageFrame.primaryAxisAlignItems = 'MIN'; // Alinhar ao topo
+        // ✅ TRATAMENTO ESPECIAL PARA ANATOMY SUBCATEGORIES
+        if (isAnatomyCategory) {
+          // ✅ CRIAR FRAME HORIZONTAL PARA ANATOMY SUBCATEGORY
+          const anatomySubFrame = figma.createFrame();
+          anatomySubFrame.name = `Anatomy Sub: ${subCategoryName}`;
+          anatomySubFrame.fills = [];
+          anatomySubFrame.layoutMode = 'HORIZONTAL';
+          anatomySubFrame.counterAxisSizingMode = 'AUTO';
+          anatomySubFrame.itemSpacing = 24;
+          anatomySubFrame.primaryAxisAlignItems = 'MIN'; // Alinhar ao topo
           
-          // ✅ CONTAINER PARA O CONTEÚDO (título + conteúdo juntos)
-          const contentContainer = figma.createFrame();
-          contentContainer.name = "Content";
-          contentContainer.fills = [];
-          contentContainer.layoutMode = 'VERTICAL';
-          contentContainer.counterAxisSizingMode = 'AUTO';
-          contentContainer.itemSpacing = 24; // ✅ 24px (não 12px)
+          // ✅ TÍTULO COM WIDTH FIXO DE 300px e 22px
+          const anatomySubTitle = await createSimpleText(subCategoryName, 22, "Bold"); // ✅ 22px
+          anatomySubTitle.resize(300, anatomySubTitle.height); // ✅ Width fixo 300px
+          anatomySubTitle.layoutSizingHorizontal = 'FIXED';
+          anatomySubFrame.appendChild(anatomySubTitle);
           
-          // ✅ CATEGORIA DESCRIPTION: NÃO TEM TÍTULO DE SUBCATEGORIA
-          if (!isDescriptionCategory) {
-            // ✅ Título da subcategoria com 28px e BOLD (dentro do Content)
-            const subCategoryTitle = await createSimpleText(subCategoryName, 28, "Bold");
-            contentContainer.appendChild(subCategoryTitle);
-            subCategoryTitle.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
-          }
+          // ✅ CONTEÚDO À DIREITA DO TÍTULO
+          const anatomyContentContainer = figma.createFrame();
+          anatomyContentContainer.name = "Anatomy Content";
+          anatomyContentContainer.fills = [];
+          anatomyContentContainer.layoutMode = 'VERTICAL';
+          anatomyContentContainer.counterAxisSizingMode = 'AUTO';
+          anatomyContentContainer.itemSpacing = 12;
           
-          // ✅ IMAGE PLACEHOLDER (frame separado)
-          const imagePlaceholder = createImagePlaceholder();
-          
-          // ✅ ALTERNAR POSIÇÃO: ESQUERDA OU DIREITA
-          if (imageOnLeft) {
-            // Image à esquerda, content à direita
-            contentImageFrame.appendChild(imagePlaceholder);
-            contentImageFrame.appendChild(contentContainer);
-          } else {
-            // Content à esquerda, image à direita
-            contentImageFrame.appendChild(contentContainer);
-            contentImageFrame.appendChild(imagePlaceholder);
-          }
-          
-          // ✅ CONFIGURAR SIZING APÓS appendChild
-          contentContainer.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
-          
-          // Adicionar conteúdo ao container Content
+          // Adicionar conteúdo
           for (const item of content) {
             if (item.trim() && !item.includes('Image')) {
-              let contentFontSize = 22;
-              if (isDescriptionCategory) {
-                contentFontSize = 30;
-              }
-              
-              const shouldHaveBullet = !isDescriptionCategory;
-              
-              const contentText = await createSimpleText(item, contentFontSize, "Regular", shouldHaveBullet);
-              contentContainer.appendChild(contentText);
+              const contentText = await createSimpleText(item, 22, "Regular", true); // ✅ Com bullet
+              anatomyContentContainer.appendChild(contentText);
               contentText.layoutSizingHorizontal = 'FILL';
             }
           }
           
-          subCategoryFrame.appendChild(contentImageFrame);
-          contentImageFrame.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
+          anatomySubFrame.appendChild(anatomyContentContainer);
+          anatomyContentContainer.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
           
-        } else {
-          // ✅ SEM IMAGE PLACEHOLDER (Description ou Anatomy)
-          
-          // ✅ CATEGORIA DESCRIPTION: NÃO TEM TÍTULO DE SUBCATEGORIA
-          if (!isDescriptionCategory) {
-            // ✅ Título da subcategoria com 28px e BOLD
-            const subCategoryTitle = await createSimpleText(subCategoryName, 28, "Bold");
-            subCategoryFrame.appendChild(subCategoryTitle);
-            subCategoryTitle.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
-          }
-          
-          for (const item of content) {
-            if (item.trim() && !item.includes('Image')) {
-              // ✅ Tamanho da fonte especial para Description Category
-              let contentFontSize = 22; // ✅ Padrão: 22px
-              if (isDescriptionCategory) {
-                contentFontSize = 30; // ✅ Description: 30px
-              }
-              
-              // ✅ CATEGORIA DESCRIPTION: SEM BULLET POINT
-              const shouldHaveBullet = !isDescriptionCategory; // ✅ Description = sem bullet
-              
-              const contentText = await createSimpleText(item, contentFontSize, "Regular", shouldHaveBullet);
-              subCategoryFrame.appendChild(contentText);
-              contentText.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
+          if (subCategoriesContainer) {
+            subCategoriesContainer.appendChild(anatomySubFrame);
+            anatomySubFrame.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
+            
+            // ✅ ADICIONAR DIVIDER ENTRE SUBCATEGORIAS ANATOMY (exceto última)
+            const isLastSubCategory = subCategoryIndex === subCategoryKeys.length - 1;
+            if (!isLastSubCategory) {
+              const anatomyDivider = createDividerLine(1); // ✅ 1px altura
+              subCategoriesContainer.appendChild(anatomyDivider);
+              anatomyDivider.layoutSizingHorizontal = 'FILL'; // ✅ Full width
             }
           }
-        }
-        
-        if (subCategoriesContainer) {
-          subCategoriesContainer.appendChild(subCategoryFrame);
-          subCategoryFrame.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
+          
+        } else {
+          // ✅ CRIAR SUBCATEGORIA NORMAL (outras seções)
+          const subCategoryFrame = figma.createFrame();
+          subCategoryFrame.name = `SubCategory: ${subCategoryName}`;
+          subCategoryFrame.fills = [];
+          subCategoryFrame.layoutMode = 'VERTICAL';
+          subCategoryFrame.counterAxisSizingMode = 'AUTO';
+          subCategoryFrame.itemSpacing = 12;
+          
+          // ✅ DETERMINAR SE DEVE TER IMAGE PLACEHOLDER E SUA POSIÇÃO
+          const shouldAddImage = !isAnatomyCategory && !isDescriptionCategory;
+          const imageOnLeft = subCategoryIndex % 2 === 1; // ✅ INVERTIDO: Ímpar = esquerda, Par = direita (COMEÇAR À DIREITA)
+          
+          if (shouldAddImage) {
+            // ✅ CRIAR FRAME HORIZONTAL PARA CONTENT + IMAGE PLACEHOLDER
+            const contentImageFrame = figma.createFrame();
+            contentImageFrame.name = "Content & Image";
+            contentImageFrame.fills = [];
+            contentImageFrame.layoutMode = 'HORIZONTAL';
+            contentImageFrame.counterAxisSizingMode = 'AUTO';
+            contentImageFrame.itemSpacing = 108; // ✅ 108px entre content e image
+            contentImageFrame.primaryAxisAlignItems = 'MIN'; // Alinhar ao topo
+            
+            // ✅ CONTAINER PARA O CONTEÚDO (título + conteúdo juntos)
+            const contentContainer = figma.createFrame();
+            contentContainer.name = "Content";
+            contentContainer.fills = [];
+            contentContainer.layoutMode = 'VERTICAL';
+            contentContainer.counterAxisSizingMode = 'AUTO';
+            contentContainer.itemSpacing = 24; // ✅ 24px (não 12px)
+            
+            // ✅ CATEGORIA DESCRIPTION: NÃO TEM TÍTULO DE SUBCATEGORIA
+            if (!isDescriptionCategory) {
+              // ✅ Título da subcategoria com 28px e BOLD (dentro do Content)
+              const subCategoryTitle = await createSimpleText(subCategoryName, 28, "Bold");
+              contentContainer.appendChild(subCategoryTitle);
+              subCategoryTitle.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
+            }
+            
+            // ✅ IMAGE PLACEHOLDER (frame separado)
+            const imagePlaceholder = createImagePlaceholder();
+            
+            // ✅ ALTERNAR POSIÇÃO: ESQUERDA OU DIREITA
+            if (imageOnLeft) {
+              // Image à esquerda, content à direita
+              contentImageFrame.appendChild(imagePlaceholder);
+              contentImageFrame.appendChild(contentContainer);
+            } else {
+              // Content à esquerda, image à direita
+              contentImageFrame.appendChild(contentContainer);
+              contentImageFrame.appendChild(imagePlaceholder);
+            }
+            
+            // ✅ CONFIGURAR SIZING APÓS appendChild
+            contentContainer.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
+            
+            // Adicionar conteúdo ao container Content
+            for (const item of content) {
+              if (item.trim() && !item.includes('Image')) {
+                let contentFontSize = 22;
+                if (isDescriptionCategory) {
+                  contentFontSize = 30;
+                }
+                
+                const shouldHaveBullet = !isDescriptionCategory;
+                
+                const contentText = await createSimpleText(item, contentFontSize, "Regular", shouldHaveBullet);
+                contentContainer.appendChild(contentText);
+                contentText.layoutSizingHorizontal = 'FILL';
+              }
+            }
+            
+            subCategoryFrame.appendChild(contentImageFrame);
+            contentImageFrame.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
+            
+          } else {
+            // ✅ SEM IMAGE PLACEHOLDER (Description ou Anatomy)
+            
+            // ✅ CATEGORIA DESCRIPTION: NÃO TEM TÍTULO DE SUBCATEGORIA
+            if (!isDescriptionCategory) {
+              // ✅ Título da subcategoria com 28px e BOLD
+              const subCategoryTitle = await createSimpleText(subCategoryName, 28, "Bold");
+              subCategoryFrame.appendChild(subCategoryTitle);
+              subCategoryTitle.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
+            }
+            
+            for (const item of content) {
+              if (item.trim() && !item.includes('Image')) {
+                // ✅ Tamanho da fonte especial para Description Category
+                let contentFontSize = 22; // ✅ Padrão: 22px
+                if (isDescriptionCategory) {
+                  contentFontSize = 30; // ✅ Description: 30px
+                }
+                
+                // ✅ CATEGORIA DESCRIPTION: SEM BULLET POINT
+                const shouldHaveBullet = !isDescriptionCategory; // ✅ Description = sem bullet
+                
+                const contentText = await createSimpleText(item, contentFontSize, "Regular", shouldHaveBullet);
+                subCategoryFrame.appendChild(contentText);
+                contentText.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
+              }
+            }
+          }
+          
+          if (subCategoriesContainer) {
+            subCategoriesContainer.appendChild(subCategoryFrame);
+            subCategoryFrame.layoutSizingHorizontal = 'FILL'; // ✅ APÓS appendChild
+          }
         }
         
         subCategoryIndex++; // ✅ Incrementar para alternância
